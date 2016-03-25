@@ -6,121 +6,41 @@ GitHub Documents
 
 This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
 
-## Loading data
-activity <- read.csv("activity.csv", header=TRUE)
-# convert character date to POSIX date
-activity$date <- as.POSIXct(strptime(activity$date, "%Y-%m-%d"),tz="")
-# first convert integer time to character and pad with leading zeros...
-activity$time     <- sprintf("%04d", activity$interval)#C style language, fill in leading zeros
-# ...then convert to the date type
-activity$time     <- as.POSIXct(activity$time, "%H%M",tz="")
-
-head(activity)
-str(activity)
-
 Including Code
 --------------
 
-##What is mean total number of steps taken per day?--------------------------------------------------
+You can include R code in the document as follows:
+--------------------------------------------------
 
-total_steps_by_date <- aggregate(list(total_steps = activity$steps),  by=list(date = activity$date), FUN=sum, na.rm=TRUE)
+total\_steps\_by\_date &lt;- aggregate(list(total\_steps = activity\(steps),  by=list(date = activity\)date), FUN=sum, na.rm=TRUE)
 
-mean(total_steps_by_date$total_steps) median(total_steps_by_date$total_steps,na.rm=T)
+mean(total\_steps\_by\_date\(total_steps) median(total_steps_by_date\)total\_steps,na.rm=T)
 
-##What is the average daily activity pattern?
+What is the average daily activity pattern?
 ===========================================
 
-average_steps_by_time <- aggregate(list(average_steps = activity$steps),
-                                   by=list(time = activity$time,
-                                           interval = activity$interval),
-                                   FUN=mean,
-                                   na.rm=TRUE)
-##plot
+average\_steps\_by\_time &lt;- aggregate(list(average\_steps = activity\(steps),  by=list(time = activity\)time, interval = activity\(interval),  FUN=mean,  na.rm=TRUE) average_steps_by_time[which.max(average_steps_by_time\)average\_steps),\]
 
-plot(average_steps ~ time,
-     data=average_steps_by_time,
-     xlab="Time interval",
-     ylab="Mean steps",
-     main="Mean Steps By Time Interval",
-     type="l",
-     col="blue",
-     lwd=2)
-##time interval with max avg # of steps
-average_steps_by_time[which.max(average_steps_by_time$average_steps),]
-
-##Imputing missing values
+Imputing missing values
 =======================
 
-sum(is.na(activity[,"steps"]))
+sum(is.na(activity\[,"steps"\])) \# "join" the two data frames using merge() activity\_imputed &lt;- merge(activity,average\_steps\_by\_time,by="interval") \# correct the NA steps with average steps for the interval activity\_imputed &lt;- within(activity\_imputed, steps &lt;- ifelse(is.na(activity\_imputed\(steps),  activity_imputed\)average\_steps, activity\_imputed$steps))
 
-# "join" the two data frames using merge()
-activity_imputed <- merge(activity,average_steps_by_time,by="interval")
+total\_steps\_by\_date\_imputed &lt;- aggregate(list(total\_steps = activity\_imputed\(steps),  by=list(date = activity_imputed\)date), FUN=sum, na.rm=FALSE) \#Are there differences in activity patterns between weekdays and weekends? \# first add a character column for day of the week activity\_imputed\(weekday <- weekdays(activity_imputed\)date) \# now populate a new factor column using day of the week and a simple function activity\_imputed$weekend\_indicator &lt;- as.factor(apply(activity\_imputed\["weekday"\], 1, function(x) { switch(x, "Sunday" = "weekend", "Saturday" = "weekend", "weekday") })) \# confirm that we have the character and factor types we expect str(activity\_imputed) \#\# Including Plots
 
-# correct the NA steps with average steps for the interval
-activity_imputed <- within(activity_imputed,
-                           steps <- ifelse(is.na(activity_imputed$steps),
-                           activity_imputed$average_steps,
-                           activity_imputed$steps))
-                           
-##Now calculate the total number of steps per day with the imputed values.
+frequencies
+===========
 
-total_steps_by_date_imputed <- aggregate(list(total_steps = activity_imputed$steps),
-                                         by=list(date = activity_imputed$date),
-                                         FUN=sum,
-                                         na.rm=FALSE)
-                                         
-##calculate mean and median
-mean(total_steps_by_date_imputed$total_steps)
-median(total_steps_by_date_imputed$total_steps)
+hist(total\_steps\_by\_date\(total_steps,  breaks=30,  xlab="Total Steps",  main="Total Steps Per Day",  col="lightblue") # desnsity plot(density(total_steps_by_date\)total\_steps, na.rm=TRUE), xlab="Total Steps", ylab="Density", main="Total Steps Per Day",
+ col="purple", lwd=3) par(mfrow=c(1,1))
 
-## Including Plots
+Daily activity pattern
+======================
 
-##Draw histograms showing the distribution of total steps (frequency and density) with the imputed values.
+plot(average\_steps ~ time, data=average\_steps\_by\_time, xlab="Time interval", ylab="Mean steps", main="Mean Steps By Time Interval", type="l", col="blue", lwd=2) \#Imputed values par(mfrow=c(1,2)) \# frequencies hist(total\_steps\_by\_date\_imputed\(total_steps,  breaks=30,  xlab="Total Steps",  main="Total Steps Per Day",  col="lightblue") ##Imputed values par(mfrow=c(1,2)) # frequencies hist(total_steps_by_date_imputed\)total\_steps, breaks=30, xlab="Total Steps", main="Total Steps Per Day", col="lightblue") \# desnsity plot(density(total\_steps\_by\_date\_imputed$total\_steps, na.rm=TRUE), xlab="Total Steps", ylab="Density", main="Total Steps Per Day",
+ col="purple", lwd=3) par(mfrow=c(1,1))
 
-par(mfrow=c(1,2))
-# frequencies
-hist(total_steps_by_date_imputed$total_steps,
-     breaks=30,
-     xlab="Total Steps",
-     main="Total Steps Per Day",
-     col="lightblue")
-# desnsity
-plot(density(total_steps_by_date_imputed$total_steps,
-             na.rm=TRUE),
-     xlab="Total Steps",
-     ylab="Density",
-     main="Total Steps Per Day",     
-     col="purple",
-     lwd=3)
-par(mfrow=c(1,1))
+Now draw a panel plot using ggplot2, comparing activity patterns on weekdays and weekends.
+------------------------------------------------------------------------------------------
 
-##are there differences in activity patterns between weekdays and weekends?
-
-##Add a factor called weekend_indicator with two levels to the data set indicating whether the date is a weekday or a weekend.
-
-# first add a character column for day of the week
-activity_imputed$weekday  <- weekdays(activity_imputed$date)
-# now populate a new factor column using day of the week and a simple function
-activity_imputed$weekend_indicator <- as.factor(apply(activity_imputed["weekday"], 1, function(x) {
-  switch(x,
-         "Sunday" = "weekend",
-         "Saturday" = "weekend",
-         "weekday")
-}))
-# confirm that we have the character and factor types we expect
-str(activity_imputed)
-##Now draw a panel plot using ggplot2, comparing activity patterns on weekdays and weekends.
-
-average_steps_by_time_weekend <- aggregate(list(average_steps = activity_imputed$steps),
-                                           by=list(time       = activity_imputed$time.x,
-                                                   daytype    = activity_imputed$weekend_indicator),
-                                           FUN=mean)
-library(ggplot2)
-qplot(x = time,
-      y = average_steps,
-      geom="path",
-      data = average_steps_by_time_weekend, 
-      xlab="Time interval",
-      ylab="Average steps",
-      main="Activity Patterns\nWeekdays vs. Weekends",
-      facets = daytype ~ .)
+average\_steps\_by\_time\_weekend &lt;- aggregate(list(average\_steps = activity\_imputed\(steps),  by=list(time = activity_imputed\)time.x, daytype = activity\_imputed$weekend\_indicator), FUN=mean) library(ggplot2) qplot(x = time, y = average\_steps, geom="path", data = average\_steps\_by\_time\_weekend, xlab="Time interval", ylab="Average steps", main="Activity Patternsvs. Weekends", facets = daytype ~ .)
