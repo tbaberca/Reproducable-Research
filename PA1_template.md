@@ -1,0 +1,126 @@
+Untitled
+================
+
+GitHub Documents
+----------------
+
+This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
+
+## Loading data
+activity <- read.csv("activity.csv", header=TRUE)
+# convert character date to POSIX date
+activity$date <- as.POSIXct(strptime(activity$date, "%Y-%m-%d"),tz="")
+# first convert integer time to character and pad with leading zeros...
+activity$time     <- sprintf("%04d", activity$interval)#C style language, fill in leading zeros
+# ...then convert to the date type
+activity$time     <- as.POSIXct(activity$time, "%H%M",tz="")
+
+head(activity)
+str(activity)
+
+Including Code
+--------------
+
+##What is mean total number of steps taken per day?--------------------------------------------------
+
+total_steps_by_date <- aggregate(list(total_steps = activity$steps),  by=list(date = activity$date), FUN=sum, na.rm=TRUE)
+
+mean(total_steps_by_date$total_steps) median(total_steps_by_date$total_steps,na.rm=T)
+
+##What is the average daily activity pattern?
+===========================================
+
+average_steps_by_time <- aggregate(list(average_steps = activity$steps),
+                                   by=list(time = activity$time,
+                                           interval = activity$interval),
+                                   FUN=mean,
+                                   na.rm=TRUE)
+##plot
+
+plot(average_steps ~ time,
+     data=average_steps_by_time,
+     xlab="Time interval",
+     ylab="Mean steps",
+     main="Mean Steps By Time Interval",
+     type="l",
+     col="blue",
+     lwd=2)
+##time interval with max avg # of steps
+average_steps_by_time[which.max(average_steps_by_time$average_steps),]
+
+##Imputing missing values
+=======================
+
+sum(is.na(activity[,"steps"]))
+
+# "join" the two data frames using merge()
+activity_imputed <- merge(activity,average_steps_by_time,by="interval")
+
+# correct the NA steps with average steps for the interval
+activity_imputed <- within(activity_imputed,
+                           steps <- ifelse(is.na(activity_imputed$steps),
+                           activity_imputed$average_steps,
+                           activity_imputed$steps))
+                           
+##Now calculate the total number of steps per day with the imputed values.
+
+total_steps_by_date_imputed <- aggregate(list(total_steps = activity_imputed$steps),
+                                         by=list(date = activity_imputed$date),
+                                         FUN=sum,
+                                         na.rm=FALSE)
+                                         
+##calculate mean and median
+mean(total_steps_by_date_imputed$total_steps)
+median(total_steps_by_date_imputed$total_steps)
+
+## Including Plots
+
+##Draw histograms showing the distribution of total steps (frequency and density) with the imputed values.
+
+par(mfrow=c(1,2))
+# frequencies
+hist(total_steps_by_date_imputed$total_steps,
+     breaks=30,
+     xlab="Total Steps",
+     main="Total Steps Per Day",
+     col="lightblue")
+# desnsity
+plot(density(total_steps_by_date_imputed$total_steps,
+             na.rm=TRUE),
+     xlab="Total Steps",
+     ylab="Density",
+     main="Total Steps Per Day",     
+     col="purple",
+     lwd=3)
+par(mfrow=c(1,1))
+
+##are there differences in activity patterns between weekdays and weekends?
+
+##Add a factor called weekend_indicator with two levels to the data set indicating whether the date is a weekday or a weekend.
+
+# first add a character column for day of the week
+activity_imputed$weekday  <- weekdays(activity_imputed$date)
+# now populate a new factor column using day of the week and a simple function
+activity_imputed$weekend_indicator <- as.factor(apply(activity_imputed["weekday"], 1, function(x) {
+  switch(x,
+         "Sunday" = "weekend",
+         "Saturday" = "weekend",
+         "weekday")
+}))
+# confirm that we have the character and factor types we expect
+str(activity_imputed)
+##Now draw a panel plot using ggplot2, comparing activity patterns on weekdays and weekends.
+
+average_steps_by_time_weekend <- aggregate(list(average_steps = activity_imputed$steps),
+                                           by=list(time       = activity_imputed$time.x,
+                                                   daytype    = activity_imputed$weekend_indicator),
+                                           FUN=mean)
+library(ggplot2)
+qplot(x = time,
+      y = average_steps,
+      geom="path",
+      data = average_steps_by_time_weekend, 
+      xlab="Time interval",
+      ylab="Average steps",
+      main="Activity Patterns\nWeekdays vs. Weekends",
+      facets = daytype ~ .)
