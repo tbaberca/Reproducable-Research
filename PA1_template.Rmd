@@ -1,14 +1,19 @@
 ---
 title: "Activity Monitoring"
-output: github_document
+author: "tbaber"
+date: "March 28, 2016"
+output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+```{r setup, include=T}
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
 
+
+```{r cars}
+# Loading and processing data
 activity <- read.csv("activity.csv", header=TRUE)
 ### convert character date to POSIX date
 activity$date <- as.POSIXct(strptime(activity$date, "%Y-%m-%d"),tz="")
@@ -16,18 +21,11 @@ activity$date <- as.POSIXct(strptime(activity$date, "%Y-%m-%d"),tz="")
 activity$time     <- sprintf("%04d", activity$interval)
 #### fill in leading zeros
 #### ...then convert to the date type
+
+# What is the mean total number of steps taken per day?
 activity$time     <- as.POSIXct(activity$time, "%H%M",tz="")
 head(activity)
 str(activity)
-
-## GitHub Documents
-
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
-
-### Including Code
-
-
-
 total_steps_by_date <- aggregate(list(total_steps = activity$steps),
                                  by=list(date = activity$date),
                                  FUN=sum,
@@ -36,7 +34,7 @@ total_steps_by_date <- aggregate(list(total_steps = activity$steps),
 mean(total_steps_by_date$total_steps)
 median(total_steps_by_date$total_steps,na.rm=T)
 
-###What is the average daily activity pattern?
+#What is the average daily activity pattern?
 
 average_steps_by_time <- aggregate(list(average_steps = activity$steps),
                                    by=list(time = activity$time,
@@ -48,7 +46,7 @@ average_steps_by_time[which.max(average_steps_by_time$average_steps),]
 
 
 
-####Imputing missing values
+#Imputing missing values
 sum(is.na(activity[,"steps"]))
 # "join" the two data frames using merge()
 activity_imputed <- merge(activity,average_steps_by_time,by="interval")
@@ -62,7 +60,7 @@ total_steps_by_date_imputed <- aggregate(list(total_steps = activity_imputed$ste
                                          by=list(date = activity_imputed$date),
                                          FUN=sum,
                                          na.rm=FALSE)
-###Are there differences in activity patterns between weekdays and weekends?
+#Are there differences in activity patterns between weekdays and weekends?
 
 #### first add a character column for day of the week
 activity_imputed$weekday  <- weekdays(activity_imputed$date)
@@ -79,23 +77,34 @@ activity_imputed$weekend_indicator <- as.factor(apply(activity_imputed["weekday"
 str(activity_imputed)
 ### Including Plots
 
-#### frequencies
-hist(total_steps_by_date$total_steps,
-     breaks=30,
-     xlab="Total Steps",
-     main="Total Steps Per Day",
-     col="lightblue")
-#### desnsity
-plot(density(total_steps_by_date$total_steps,
-             na.rm=TRUE),
-     xlab="Total Steps",
-     ylab="Density",
-     main="Total Steps Per Day",     
-     col="purple",
-     lwd=3)
-par(mfrow=c(1,1))
 
 ###Daily activity pattern
+
+     
+###Imputed values
+par(mfrow=c(1,2))
+
+#### frequencies
+
+
+#### desnsity
+
+
+
+####Now draw a panel plot using ggplot2, comparing activity patterns on weekdays and weekends.
+
+
+average_steps_by_time_weekend <- aggregate(list(average_steps = activity_imputed$steps),
+                                           by=list(time       = activity_imputed$time.x,
+                                                   daytype    = activity_imputed$weekend_indicator),
+                                           FUN=mean)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=T}
 plot(average_steps ~ time,
      data=average_steps_by_time,
      xlab="Time interval",
@@ -104,18 +113,11 @@ plot(average_steps ~ time,
      type="l",
      col="blue",
      lwd=2)
-     
-###Imputed values
-par(mfrow=c(1,2))
-
-#### frequencies
 hist(total_steps_by_date_imputed$total_steps,
      breaks=30,
      xlab="Total Steps",
      main="Total Steps Per Day",
      col="lightblue")
-
-#### desnsity
 plot(density(total_steps_by_date_imputed$total_steps,
              na.rm=TRUE),
      xlab="Total Steps",
@@ -125,13 +127,6 @@ plot(density(total_steps_by_date_imputed$total_steps,
      lwd=3)
 par(mfrow=c(1,1))
 
-
-####Now draw a panel plot using ggplot2, comparing activity patterns on weekdays and weekends.
-
-average_steps_by_time_weekend <- aggregate(list(average_steps = activity_imputed$steps),
-                                           by=list(time       = activity_imputed$time.x,
-                                                   daytype    = activity_imputed$weekend_indicator),
-                                           FUN=mean)
 library(ggplot2)
 qplot(x = time,
       y = average_steps,
@@ -141,3 +136,7 @@ qplot(x = time,
       ylab="Average steps",
       main="Activity Patterns\nWeekdays vs. Weekends",
       facets = daytype ~ .)
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
